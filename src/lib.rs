@@ -28,8 +28,14 @@ where
 
     fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
         for list in (tokens.into_iter().collect::<Vec<T>>()).windows(self.order + 1) {
-            let children = self.graph.entry(list[..self.order - 1].to_vec()).or_insert(HashMap::new());
-            children.entry(list[self.order].clone());
+            let children = self
+                .graph
+                .entry(list[..self.order].to_vec())
+                .or_insert_with(HashMap::new);
+            children
+                .entry(list[self.order].clone())
+                .and_modify(|counter| *counter += 1)
+                .or_insert(1);
         }
         self
     }
@@ -52,14 +58,16 @@ mod tests {
     #[test]
     fn train_first_order() {
         let mut map = MarkovChain::<&str>::new(1);
-        map.train("one fish two fish red fish".split_whitespace());
+        map.train("one fish two fish red fish red".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
             graph.get(&vec!["one"]).unwrap(),
             &hashmap_creator(vec!(("fish", 1usize)))
         );
-        /*assert_eq!(graph["fish"], vec!["fish"]);
-        assert_eq!(graph["two"], vec!["fish"]);
-        assert_eq!(graph["red"], vec!["fish"]);*/
+        // This test cares about the order. In reality, it doesn't have to matter
+        assert_eq!(
+            graph.get(&vec!["fish"]).unwrap(),
+            &hashmap_creator(vec!(("two", 1usize), ("red", 2usize)))
+        );
     }
 }
