@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn train_first_order() {
         let mut map = MarkovChain::<&str>::new(1);
-        map.train("one fish two fish red fish red".split_whitespace());
+        map.train("one fish two fish red fish red fish".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
             graph.get(&vec!["one"]).unwrap(),
@@ -67,7 +67,22 @@ mod tests {
         // This test cares about the order. In reality, it doesn't have to matter
         assert_eq!(
             graph.get(&vec!["fish"]).unwrap(),
-            &hashmap_creator(vec!(("two", 1usize), ("red", 2usize)))
+            &hashmap_creator(vec![("two", 1usize), ("red", 2usize)])
+        );
+    }
+
+    #[test]
+    fn train_second_order() {
+        let mut map = MarkovChain::<&str>::new(2);
+        map.train("one fish two fish red fish blue fish".split_whitespace());
+        let graph = &map.graph;
+        assert_eq!(
+            graph.get(&vec!["one", "fish"]).unwrap(),
+            &hashmap_creator(vec!(("two", 1usize)))
+        );
+        assert_eq!(
+            graph.get(&vec!["fish", "blue"]).unwrap(),
+            &hashmap_creator(vec![("fish", 1usize)])
         );
     }
 }
