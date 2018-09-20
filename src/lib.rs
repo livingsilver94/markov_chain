@@ -6,18 +6,12 @@ use std::hash::Hash;
 trait Token: Clone + Eq + Hash {}
 impl<T> Token for T where T: Clone + Eq + Hash {}
 
-struct MarkovChain<T>
-where
-    T: Token,
-{
+struct MarkovChain<T> {
     order: usize,
     graph: HashMap<Vec<T>, HashMap<T, usize>>,
 }
 
-impl<T> MarkovChain<T>
-where
-    T: Token,
-{
+impl<T: Token> MarkovChain<T> {
     // TODO: filter on order >= 1
     fn new(order: usize) -> MarkovChain<T> {
         MarkovChain {
@@ -43,14 +37,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::MarkovChain;
+    use super::{MarkovChain, Token};
     use std::collections::HashMap;
-    use std::hash::Hash;
 
-    fn hashmap_creator<K, V>(tuples: Vec<(K, V)>) -> HashMap<K, V>
-    where
-        K: Eq + Hash,
-    {
+    fn hashmap_creator<K: Token, V>(tuples: Vec<(K, V)>) -> HashMap<K, V> {
         let map: HashMap<K, V> = tuples.into_iter().collect();
         map
     }
@@ -64,7 +54,6 @@ mod tests {
             graph.get(&vec!["one"]).unwrap(),
             &hashmap_creator(vec!(("fish", 1usize)))
         );
-        // This test cares about the order. In reality, it doesn't have to matter
         assert_eq!(
             graph.get(&vec!["fish"]).unwrap(),
             &hashmap_creator(vec![("two", 1usize), ("red", 2usize)])
