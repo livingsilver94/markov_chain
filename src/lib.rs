@@ -30,7 +30,31 @@ where
     }
 
     fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
+        let mut tokens = tokens.into_iter();
+        // First, insert the Beginning node
+        self.update_entry(KeyPosition::Beginning, tokens.next());
+        let tokens_vec: Vec<_> = tokens.collect();
+        // Now, the tokens in the middle
+        let last_win = tokens_vec.windows(self.order+1).fold(None, |_, win|{
+            self.update_entry(KeyPosition::Body(win[..self.order - 1].to_vec()), Some(win[self.order].clone()));
+            Some(win)
+        }).unwrap();
+        // And finally, the key with no followers
+        self.update_entry(KeyPosition::Body(last_win[1..].to_vec()), None);
         self
+    }
+
+    fn update_entry(&mut self, key: KeyPosition<T>, value: Option<T>) {
+        let followers = self.graph.entry(key);
+        match value {
+            Some(thing) => {
+                let followers = followers.or_insert_with(|| Some(HashMap::new())).as_mut().unwrap();
+                followers.entry(thing.clone()).and_modify(|counter| *counter += 1).or_insert(1);
+            },
+            None => {
+                followers.or_insert(None);
+            }
+        }
     }
 }
 
