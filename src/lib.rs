@@ -3,20 +3,20 @@ use std::hash::Hash;
 
 // This is a workaround while we wait for https://github.com/rust-lang/rust/issues/41517 to be merged
 // Copied for here: https://github.com/aatxe/markov/blob/stable/src/lib.rs#L59
-trait Token: Clone + Eq + Hash {}
+pub trait Token: Clone + Eq + Hash {}
 impl<T> Token for T where T: Clone + Eq + Hash {}
 
 type Followers<T> = HashMap<Option<T>, usize>;
 
 #[derive(Clone, Hash, PartialEq)]
-enum KeyPosition<T> {
+pub enum KeyPosition<T> {
     Beginning,
     Body(T),
 }
 
 impl<T> Eq for KeyPosition<T> where T: PartialEq {}
 
-struct MarkovChain<T> {
+pub struct MarkovChain<T> {
     order: usize,
     graph: HashMap<Vec<KeyPosition<T>>, Followers<T>>,
 }
@@ -26,14 +26,14 @@ where
     KeyPosition<T>: Token,
     T: Token,
 {
-    fn new(order: usize) -> Self {
+    pub fn new(order: usize) -> Self {
         MarkovChain {
             order,
             graph: HashMap::new(),
         }
     }
 
-    fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
+    pub fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
         let mut key = VecDeque::from(vec![KeyPosition::Beginning; self.order]);
         for item in tokens.into_iter() {
             self.update_entry(key.iter().cloned(), Some(item.clone()));
