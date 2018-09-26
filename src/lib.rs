@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 
 // This is a workaround while we wait for https://github.com/rust-lang/rust/issues/41517 to be merged
@@ -6,19 +6,19 @@ use std::hash::Hash;
 trait Token: Clone + Eq + Hash {}
 impl<T> Token for T where T: Clone + Eq + Hash {}
 
-type Followers<T> = Option<HashMap<T, usize>>;
+type Followers<T> = HashMap<Option<T>, usize>;
 
 #[derive(Clone, Hash, PartialEq)]
 enum KeyPosition<T> {
     Beginning,
-    Body(Vec<T>),
+    Body(T),
 }
 
 impl<T> Eq for KeyPosition<T> where T: PartialEq {}
 
 struct MarkovChain<T> {
     order: usize,
-    graph: HashMap<KeyPosition<T>, Followers<T>>,
+    graph: HashMap<Vec<KeyPosition<T>>, Followers<T>>,
 }
 
 impl<T> MarkovChain<T>
@@ -34,41 +34,25 @@ where
     }
 
     fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
-        let tokens_vec: Vec<_> = tokens.into_iter().collect();
-        // First, insert the Beginning node
-        self.update_entry(KeyPosition::Beginning, tokens_vec.first().cloned());
-        // Now, the tokens in the middle
-        let last_win = tokens_vec
-            .windows(self.order + 1)
-            .fold(None, |_, win| {
-                self.update_entry(
-                    KeyPosition::Body(win[..self.order].to_vec()),
-                    Some(win[self.order].clone()),
-                );
-                Some(win)
-            }).unwrap();
-        // And finally, the key with no followers
-        self.update_entry(KeyPosition::Body(last_win[1..].to_vec()), None);
+        let mut key = VecDeque::from(vec![KeyPosition::Beginning; self.order]);
+        for item in tokens.into_iter() {
+            self.update_entry(key.iter().cloned(), Some(item.clone()));
+            key.pop_front();
+            key.push_back(KeyPosition::Body(item.clone()));
+        }
+        self.update_entry(key.iter().cloned(), None);
         self
     }
 
-    fn update_entry(&mut self, key: KeyPosition<T>, value: Option<T>) {
-        let followers = self.graph.entry(key);
-        match value {
-            Some(thing) => {
-                let followers = followers
-                    .or_insert_with(|| Some(HashMap::new()))
-                    .as_mut()
-                    .unwrap();
-                followers
-                    .entry(thing)
-                    .and_modify(|counter| *counter += 1)
-                    .or_insert(1);
-            }
-            None => {
-                followers.or_insert(None);
-            }
-        }
+    fn update_entry(&mut self, key: impl IntoIterator<Item = KeyPosition<T>>, value: Option<T>) {
+        let followers = self
+            .graph
+            .entry(key.into_iter().collect())
+            .or_insert_with(HashMap::new);
+        followers
+            .entry(value)
+            .and_modify(|counter| *counter += 1)
+            .or_insert(1);
     }
 }
 
@@ -77,9 +61,9 @@ mod tests {
     use super::{Followers, KeyPosition, MarkovChain, Token};
     use std::collections::HashMap;
 
-    fn hashmap_creator<K: Token>(pairs: Vec<(K, usize)>) -> Followers<K> {
-        let map: HashMap<K, usize> = pairs.into_iter().collect();
-        Some(map)
+    fn hashmap_creator<K: Token>(pairs: Vec<(Option<K>, usize)>) -> Followers<K> {
+        let map: HashMap<_, _> = pairs.into_iter().collect();
+        map
     }
 
     #[test]
@@ -88,12 +72,8 @@ mod tests {
         map.train("one fish two fish red fish red fish".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
-            graph.get(&KeyPosition::Beginning).unwrap(),
-            &hashmap_creator(vec!(("one", 1)))
-        );
-        assert_eq!(
-            graph.get(&KeyPosition::Body(vec!["fish"])).unwrap(),
-            &hashmap_creator(vec![("two", 1), ("red", 2)])
+            graph.get(&vec![KeyPosition::Body("fish")]).unwrap(),
+            &hashmap_creator(vec![(Some("two"), 1), (Some("red"), 2), (None, 1)])
         );
     }
 
@@ -103,12 +83,12 @@ mod tests {
         map.train("one fish two fish red fish blue fish".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
-            graph.get(&KeyPosition::Body(vec!["one", "fish"])).unwrap(),
-            &hashmap_creator(vec!(("two", 1)))
+            graph.get(&vec![KeyPosition::Beginning, KeyPosition::Beginning]).unwrap(),
+            &hashmap_creator(vec![(Some("one"), 1)])
         );
         assert_eq!(
-            graph.get(&KeyPosition::Body(vec!["fish", "blue"])).unwrap(),
-            &hashmap_creator(vec![("fish", 1)])
+            graph.get(&vec![KeyPosition::Beginning, KeyPosition::Body("one")]).unwrap(),
+            &hashmap_creator(vec![(Some("fish"), 1)])
         );
     }
 }
