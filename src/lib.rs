@@ -6,7 +6,36 @@ use std::hash::Hash;
 pub trait Token: Clone + Eq + Hash {}
 impl<T> Token for T where T: Clone + Eq + Hash {}
 
-type Followers<T> = HashMap<Option<T>, usize>;
+pub struct Followers<T> {
+    occurs: HashMap<Option<T>, usize>,
+    freq_sum: usize,
+}
+
+impl<T: Token> Followers<T> {
+    pub fn new() -> Self {
+        Followers {
+            occurs: HashMap::<_, _>::new(),
+            freq_sum: 0,
+        }
+    }
+
+    pub fn add(&mut self, follower: Option<T>) -> &Self {
+        self.occurs
+            .entry(follower)
+            .and_modify(|counter| *counter += 1)
+            .or_insert(1);
+        self.freq_sum += 1;
+        self
+    }
+
+    pub fn occurs(&self) -> &HashMap<Option<T>, usize> {
+        &self.occurs
+    }
+
+    pub fn freq_sum(&self) -> usize {
+        self.freq_sum
+    }
+}
 
 #[derive(Clone, Hash, PartialEq)]
 pub enum KeyPosition<T> {
@@ -48,21 +77,18 @@ where
         let followers = self
             .graph
             .entry(key.into_iter().collect())
-            .or_insert_with(HashMap::new);
-        followers
-            .entry(value)
-            .and_modify(|counter| *counter += 1)
-            .or_insert(1);
+            .or_insert_with(Followers::new);
+        followers.add(value);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Followers, KeyPosition, MarkovChain, Token};
+    use super::{KeyPosition, MarkovChain, Token};
     use std::collections::HashMap;
 
-    fn hashmap_creator<K: Token>(pairs: Vec<(Option<K>, usize)>) -> Followers<K> {
-        let map: HashMap<_, _> = pairs.into_iter().collect();
+    fn hashmap_creator<K: Token>(occurs: Vec<(Option<K>, usize)>) -> HashMap<Option<K>, usize> {
+        let map: HashMap<_, _> = occurs.into_iter().collect();
         map
     }
 
@@ -72,7 +98,10 @@ mod tests {
         map.train("one fish two fish red fish red fish".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
-            graph.get(&vec![KeyPosition::Body("fish")]).unwrap(),
+            graph
+                .get(&vec![KeyPosition::Body("fish")])
+                .unwrap()
+                .occurs(),
             &hashmap_creator(vec![(Some("two"), 1), (Some("red"), 2), (None, 1)])
         );
     }
@@ -85,13 +114,15 @@ mod tests {
         assert_eq!(
             graph
                 .get(&vec![KeyPosition::Beginning, KeyPosition::Beginning])
-                .unwrap(),
+                .unwrap()
+                .occurs(),
             &hashmap_creator(vec![(Some("one"), 1)])
         );
         assert_eq!(
             graph
                 .get(&vec![KeyPosition::Beginning, KeyPosition::Body("one")])
-                .unwrap(),
+                .unwrap()
+                .occurs(),
             &hashmap_creator(vec![(Some("fish"), 1)])
         );
     }
