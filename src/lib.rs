@@ -38,9 +38,9 @@ where
         for item in tokens.into_iter() {
             self.update_entry(key.iter().cloned(), Some(item.clone()));
             key.pop_front();
-            key.push_back(KeyPosition::Body(item.clone()));
+            key.push_back(KeyPosition::Body(item));
         }
-        self.update_entry(key.iter().cloned(), None);
+        self.update_entry(key.into_iter(), None);
         self
     }
 
@@ -83,11 +83,15 @@ mod tests {
         map.train("one fish two fish red fish blue fish".split_whitespace());
         let graph = &map.graph;
         assert_eq!(
-            graph.get(&vec![KeyPosition::Beginning, KeyPosition::Beginning]).unwrap(),
+            graph
+                .get(&vec![KeyPosition::Beginning, KeyPosition::Beginning])
+                .unwrap(),
             &hashmap_creator(vec![(Some("one"), 1)])
         );
         assert_eq!(
-            graph.get(&vec![KeyPosition::Beginning, KeyPosition::Body("one")]).unwrap(),
+            graph
+                .get(&vec![KeyPosition::Beginning, KeyPosition::Body("one")])
+                .unwrap(),
             &hashmap_creator(vec![(Some("fish"), 1)])
         );
     }
