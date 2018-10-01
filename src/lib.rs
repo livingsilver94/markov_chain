@@ -1,3 +1,6 @@
+extern crate rand;
+
+use rand::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 
@@ -35,6 +38,17 @@ impl<T: Token> Followers<T> {
     pub fn freq_sum(&self) -> usize {
         self.freq_sum
     }
+
+    pub fn random_follower(&self) -> &Option<T> {
+        let mut rnd_weight = rand::thread_rng().gen_range(0, (self.freq_sum as i32) + 1);
+        self.occurs
+            .iter()
+            .find(|tup| {
+                rnd_weight -= *tup.1 as i32;
+                rnd_weight <= 0
+            }).unwrap()
+            .0
+    }
 }
 
 #[derive(Clone, Hash, PartialEq)]
@@ -71,6 +85,30 @@ where
         }
         self.update_entry(key.into_iter(), None);
         self
+    }
+
+    pub fn generate_from_token(&self, token: impl Into<Vec<KeyPosition<T>>>, max: usize) -> Vec<&T> {
+        let mut key_queue = VecDeque::from(token.into());
+        let mut ret = vec![];
+        for _ in 0..max {
+            let key_vec: Vec<KeyPosition<T>> = key_queue.iter().cloned().collect();
+            if let Some(follow) = self.graph.get(&key_vec) {
+                if let Some(tok) = follow.random_follower() {
+                    ret.push(tok);
+                    key_queue.pop_front();
+                    key_queue.push_back(KeyPosition::Body(tok.clone()));
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        ret
+    }
+
+    pub fn generate(&self, max: usize) -> Vec<&T> {
+        self.generate_from_token(vec![KeyPosition::Beginning; self.order], max)
     }
 
     fn update_entry(&mut self, key: impl IntoIterator<Item = KeyPosition<T>>, value: Option<T>) {

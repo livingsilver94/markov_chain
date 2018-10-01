@@ -5,3 +5,5 @@ authors = ["livingsilver94 <fabio0x@keemail.me>"]
 edition = "2018"
 
 [dependencies]
+rand = "0.5.0"
+serde_json = "1.0"
