@@ -9,7 +9,8 @@ use std::hash::Hash;
 pub trait Token: Clone + Eq + Hash {}
 impl<T> Token for T where T: Clone + Eq + Hash {}
 
-pub struct Followers<T> {
+#[derive(Default)]
+pub struct Followers<T: Token> {
     occurs: HashMap<Option<T>, usize>,
     freq_sum: usize,
 }
@@ -51,15 +52,13 @@ impl<T: Token> Followers<T> {
     }
 }
 
-#[derive(Clone, Hash, PartialEq)]
-pub enum KeyPosition<T> {
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub enum KeyPosition<T: Token> {
     Beginning,
     Body(T),
 }
 
-impl<T> Eq for KeyPosition<T> where T: PartialEq {}
-
-pub struct MarkovChain<T> {
+pub struct MarkovChain<T: Token> {
     order: usize,
     graph: HashMap<Vec<KeyPosition<T>>, Followers<T>>,
 }
@@ -87,7 +86,11 @@ where
         self
     }
 
-    pub fn generate_from_token(&self, token: impl Into<Vec<KeyPosition<T>>>, max: usize) -> Vec<&T> {
+    pub fn generate_from_token(
+        &self,
+        token: impl Into<Vec<KeyPosition<T>>>,
+        max: usize,
+    ) -> Vec<&T> {
         let mut key_queue = VecDeque::from(token.into());
         let mut ret = vec![];
         for _ in 0..max {
