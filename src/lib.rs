@@ -11,8 +11,8 @@ impl<T> Token for T where T: Clone + Eq + Hash {}
 
 #[derive(Default)]
 pub struct Followers<T: Token> {
-    occurs: HashMap<Option<T>, usize>,
-    freq_sum: usize,
+    occurs: HashMap<Option<T>, u64>,
+    freq_sum: u64,
 }
 
 impl<T: Token> Followers<T> {
@@ -32,16 +32,16 @@ impl<T: Token> Followers<T> {
         self
     }
 
-    pub fn occurs(&self) -> &HashMap<Option<T>, usize> {
+    pub fn occurs(&self) -> &HashMap<Option<T>, u64> {
         &self.occurs
     }
 
     pub fn random_follower(&self) -> &Option<T> {
-        let mut rnd_weight = rand::thread_rng().gen_range(0, (self.freq_sum as i32) + 1);
+        let mut rnd_weight = rand::thread_rng().gen_range(0, self.freq_sum + 1) as i64;
         self.occurs
             .iter()
             .find(|tup| {
-                rnd_weight -= *tup.1 as i32;
+                rnd_weight -= *tup.1 as i64;
                 rnd_weight <= 0
             }).unwrap()
             .0
@@ -121,7 +121,7 @@ mod tests {
     use super::{KeyPosition, MarkovChain, Token};
     use std::collections::HashMap;
 
-    fn hashmap_creator<K: Token>(occurs: Vec<(Option<K>, usize)>) -> HashMap<Option<K>, usize> {
+    fn hashmap_creator<K: Token>(occurs: Vec<(Option<K>, u64)>) -> HashMap<Option<K>, u64> {
         let map: HashMap<_, _> = occurs.into_iter().collect();
         map
     }
