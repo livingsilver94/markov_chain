@@ -59,10 +59,7 @@ pub struct MarkovChain<T: Token> {
     graph: HashMap<Vec<KeyPosition<T>>, Followers<T>>,
 }
 
-impl<T> MarkovChain<T>
-where
-    KeyPosition<T>: Token,
-    T: Token,
+impl<T: Token> MarkovChain<T>
 {
     pub fn new(order: usize) -> Self {
         MarkovChain {
