@@ -36,10 +36,6 @@ impl<T: Token> Followers<T> {
         &self.occurs
     }
 
-    pub fn freq_sum(&self) -> usize {
-        self.freq_sum
-    }
-
     pub fn random_follower(&self) -> &Option<T> {
         let mut rnd_weight = rand::thread_rng().gen_range(0, (self.freq_sum as i32) + 1);
         self.occurs
