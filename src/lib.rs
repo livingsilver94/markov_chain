@@ -82,7 +82,7 @@ impl<T: Token> MarkovChain<T> {
     pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> Vec<&T> {
         let mut key_queue = VecDeque::from_iter(token.iter().cloned());
         let mut ret = vec![];
-        for _ in 0..max + 1 {
+        for _ in 0..=max {
             match self.graph.get(&key_queue.iter().cloned().collect::<Vec<KeyPosition<T>>>()) {
                 Some(follow) => match follow.random_follower() {
                     Some(tok) => {
