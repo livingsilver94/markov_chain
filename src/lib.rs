@@ -98,6 +98,13 @@ impl<T: Token> MarkovChain<T> {
         ret
     }
 
+    /// Generate a vector of elements starting from a random token.
+    pub fn generate_from_random_token(&self, max: usize) -> Vec<&T> {
+        let rnd_index = rand::thread_rng().gen_range(0, self.graph.len() + 1);
+        self.generate_from_token(self.graph.keys().nth(rnd_index).unwrap(), max)
+    }
+
+    /// Generate a vector of elements starting from a token marked as the beginning of the chain.
     pub fn generate(&self, max: usize) -> Vec<&T> {
         self.generate_from_token(&vec![KeyPosition::Beginning; self.order], max)
     }
