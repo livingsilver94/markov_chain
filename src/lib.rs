@@ -3,6 +3,7 @@ extern crate rand;
 use rand::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
+use std::iter::FromIterator;
 
 // This is a workaround while we wait for https://github.com/rust-lang/rust/issues/41517 to be merged
 // Copied for here: https://github.com/aatxe/markov/blob/stable/src/lib.rs#L59
@@ -40,8 +41,8 @@ impl<T: Token> Followers<T> {
         let mut rnd_weight = rand::thread_rng().gen_range(0, self.freq_sum + 1) as i64;
         self.occurs
             .iter()
-            .find(|tup| {
-                rnd_weight -= *tup.1 as i64;
+            .find(|(_, freq)| {
+                rnd_weight -= **freq as i64;
                 rnd_weight <= 0
             }).unwrap()
             .0
@@ -59,8 +60,7 @@ pub struct MarkovChain<T: Token> {
     graph: HashMap<Vec<KeyPosition<T>>, Followers<T>>,
 }
 
-impl<T: Token> MarkovChain<T>
-{
+impl<T: Token> MarkovChain<T> {
     pub fn new(order: usize) -> Self {
         MarkovChain {
             order,
@@ -79,32 +79,25 @@ impl<T: Token> MarkovChain<T>
         self
     }
 
-    pub fn generate_from_token(
-        &self,
-        token: impl Into<Vec<KeyPosition<T>>>,
-        max: usize,
-    ) -> Vec<&T> {
-        let mut key_queue = VecDeque::from(token.into());
+    pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> Vec<&T> {
+        let key_queue = VecDeque::from_iter(token.iter().cloned());
         let mut ret = vec![];
-        for _ in 0..max {
-            let key_vec: Vec<KeyPosition<T>> = key_queue.iter().cloned().collect();
-            if let Some(follow) = self.graph.get(&key_vec) {
-                if let Some(tok) = follow.random_follower() {
-                    ret.push(tok);
-                    key_queue.pop_front();
-                    key_queue.push_back(KeyPosition::Body(tok.clone()));
-                } else {
-                    break;
-                }
-            } else {
-                break;
+        for _ in 0..max + 1 {
+            match self.graph.get(key_queue.as_slices().0) {
+                Some(follow) => match follow.random_follower() {
+                    Some(tok) => {
+                        ret.push(tok);
+                    }
+                    None => break,
+                },
+                None => break,
             }
         }
         ret
     }
 
     pub fn generate(&self, max: usize) -> Vec<&T> {
-        self.generate_from_token(vec![KeyPosition::Beginning; self.order], max)
+        self.generate_from_token(&vec![KeyPosition::Beginning; self.order], max)
     }
 
     fn update_entry(&mut self, key: impl IntoIterator<Item = KeyPosition<T>>, value: Option<T>) {
