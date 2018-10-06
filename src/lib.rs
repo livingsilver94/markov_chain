@@ -3,7 +3,6 @@ extern crate rand;
 use rand::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
-use std::iter::FromIterator;
 
 // This is a workaround while we wait for https://github.com/rust-lang/rust/issues/41517 to be merged
 // Copied for here: https://github.com/aatxe/markov/blob/stable/src/lib.rs#L59
@@ -80,15 +79,18 @@ impl<T: Token> MarkovChain<T> {
     }
 
     pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> Vec<&T> {
-        let mut key_queue = VecDeque::from_iter(token.iter().cloned());
+        let mut key_queue = token.to_vec();
+        let mut removed = 0;
         let mut ret = vec![];
         for _ in 0..=max {
-            match self.graph.get(&key_queue.iter().cloned().collect::<Vec<KeyPosition<T>>>()) {
+            // This solution requires plenty of memory, but allows us to avoid
+            // multiple clone()s or collect()s, like we should do with a VecDeque
+            match self.graph.get(&key_queue[removed..]) {
                 Some(follow) => match follow.random_follower() {
                     Some(tok) => {
+                        key_queue.push(KeyPosition::Body(tok.clone()));
                         ret.push(tok);
-                        key_queue.pop_front();
-                        key_queue.push_back(KeyPosition::Body(tok.clone()));
+                        removed += 1;
                     }
                     None => break,
                 },
