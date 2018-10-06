@@ -78,13 +78,13 @@ impl<T: Token> MarkovChain<T> {
         self
     }
 
-    pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> Vec<&T> {
+    pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> impl Iterator<Item = &T> {
         let mut key_queue = token.to_vec();
         let mut removed = 0;
         let mut ret = vec![];
         for _ in 0..=max {
             // This solution requires plenty of memory, but allows us to avoid
-            // multiple clone()s or collect()s, like we should do with a VecDeque
+            // multiple clone()s and collect()s, like we should do with a VecDeque
             match self.graph.get(&key_queue[removed..]) {
                 Some(follow) => match follow.random_follower() {
                     Some(tok) => {
@@ -97,17 +97,17 @@ impl<T: Token> MarkovChain<T> {
                 None => break,
             }
         }
-        ret
+        ret.into_iter()
     }
 
     /// Generate a vector of elements starting from a random token.
-    pub fn generate_from_random_token(&self, max: usize) -> Vec<&T> {
+    pub fn generate_from_random_token(&self, max: usize) -> impl Iterator<Item = &T> {
         let rnd_index = rand::thread_rng().gen_range(0, self.graph.len() + 1);
         self.generate_from_token(self.graph.keys().nth(rnd_index).unwrap(), max)
     }
 
     /// Generate a vector of elements starting from a token marked as the beginning of the chain.
-    pub fn generate(&self, max: usize) -> Vec<&T> {
+    pub fn generate(&self, max: usize) -> impl Iterator<Item = &T> {
         self.generate_from_token(&vec![KeyPosition::Beginning; self.order], max)
     }
 

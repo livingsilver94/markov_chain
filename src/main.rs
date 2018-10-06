@@ -28,7 +28,7 @@ fn main() {
 					}
 				}
 			}
-			print!("{:#?}", chain.generate(100));
+			print!("{:#?}", chain.generate_from_random_token(100).collect::<Vec<_>>());
 		}
 		Err(err) => {
 			eprintln!("{}", err);
