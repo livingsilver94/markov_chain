@@ -79,19 +79,23 @@ impl<T: Token> MarkovChain<T> {
     }
 
     pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> impl Iterator<Item = &T> {
-        let mut key_queue = token.to_vec();
+        let mut key_queue = Vec::with_capacity(self.order * 2);
+        key_queue.extend_from_slice(token);
         let mut removed = 0;
-        let mut ret = vec![];
+        let mut ret = Vec::new();
         for _ in 0..=max {
-            // This solution requires plenty of memory, but allows us to avoid
-            // multiple clone()s and collect()s, like we should do with a VecDeque
             match self.graph.get(&key_queue[removed..]) {
                 Some(follow) => match follow.random_follower() {
                     Some(tok) => {
-                        key_queue.push(KeyPosition::Body(tok.clone()));
                         ret.push(tok);
-                        removed += 1;
-                    }
+                        if key_queue.len() == key_queue.capacity() {
+                            key_queue.drain(..=removed);
+                            removed = 0;
+                        } else {
+                            removed += 1;
+                        }
+                        key_queue.push(KeyPosition::Body(tok.clone()));
+                    },
                     None => break,
                 },
                 None => break,
@@ -101,9 +105,12 @@ impl<T: Token> MarkovChain<T> {
     }
 
     /// Generate a vector of elements starting from a random token.
-    pub fn generate_from_random_token(&self, max: usize) -> impl Iterator<Item = &T> {
+    /// Return a tuple where the first element is the random key chosen, and the second
+    /// element is the generated iterator.
+    pub fn generate_from_rnd_token(&self, max: usize) -> (&[KeyPosition<T>], impl Iterator<Item = &T>) {
         let rnd_index = rand::thread_rng().gen_range(0, self.graph.len() + 1);
-        self.generate_from_token(self.graph.keys().nth(rnd_index).unwrap(), max)
+        let rnd_key = self.graph.keys().nth(rnd_index).unwrap();
+        (rnd_key, self.generate_from_token(rnd_key, max))
     }
 
     /// Generate a vector of elements starting from a token marked as the beginning of the chain.
