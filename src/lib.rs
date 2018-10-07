@@ -180,4 +180,11 @@ mod tests {
         map.train("one fish two fish red fish blue fish".split_whitespace());
         map.generate_from_token(&vec![KeyPosition::Beginning; 1], 10);
     }
+
+    #[test]
+    fn chain_returns_something() {
+        let mut map = MarkovChain::<&str>::new(2);
+        map.train("one fish two fish red fish blue fish".split_whitespace());
+        assert!(map.generate(10).last() != None);
+    }
 }
