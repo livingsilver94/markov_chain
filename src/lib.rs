@@ -133,6 +133,26 @@ impl<T: Token> MarkovChain<T> {
     }
 }
 
+impl<'a> MarkovChain<String> {
+
+    fn vec_to_string(vec: impl Iterator<Item = &'a String>) -> String {
+        vec.fold(String::new(), |acc, num| acc + &num + " ")                
+    }
+    
+    pub fn generate_string_from_token(&self, token: &[KeyPosition<String>], max: usize) -> String {
+        MarkovChain::vec_to_string(self.generate_from_token(token, max))
+    }
+    
+    pub fn generate_string_from_rnd_token(&self, max: usize) -> (&[KeyPosition<String>], String) {
+        let res = self.generate_from_rnd_token(max);
+        (res.0, MarkovChain::vec_to_string(res.1))
+    }
+
+    pub fn generate_string(&self, max: usize) -> String {
+        MarkovChain::vec_to_string(self.generate(max))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{KeyPosition, MarkovChain, Token};

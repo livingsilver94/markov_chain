@@ -26,9 +26,8 @@ fn generate_from_file() {
 			println!(
 				"{}",
 				chain
-					.generate_from_rnd_token(100)
+					.generate_string_from_rnd_token(100)
 					.1
-					.fold(String::new(), |acc, num| acc + &num + " ")
 			);
 		}
 		Err(err) => {
