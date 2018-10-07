@@ -119,8 +119,6 @@ impl<T: Token> MarkovChain<T> {
         self.generate_from_token(&vec![KeyPosition::Beginning; self.order], max)
     }
 
-
-
     fn update_entry(&mut self, key: impl IntoIterator<Item = KeyPosition<T>>, value: Option<T>) {
         let followers = self
             .graph
@@ -173,5 +171,13 @@ mod tests {
                 .occurs(),
             &hashmap_creator(vec![(Some("fish"), 1)])
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_on_wrong_key_size() {
+        let mut map = MarkovChain::<&str>::new(2);
+        map.train("one fish two fish red fish blue fish".split_whitespace());
+        map.generate_from_token(&vec![KeyPosition::Beginning; 1], 10);
     }
 }

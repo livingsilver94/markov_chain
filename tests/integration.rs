@@ -1,18 +1,13 @@
 extern crate markov_chain;
 
 use markov_chain::MarkovChain;
-use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process;
 
-fn main() {
-	let path = env::args_os().nth(1);
-	if path.is_none() {
-		eprintln!("Did you provide a file path?");
-		process::exit(1);
-	}
-	match File::open(path.unwrap()) {
+#[test]
+fn generate_from_file() {
+	match File::open("data/A Descent into the Maelström.txt") {
 		Ok(file) => {
 			let reader = BufReader::new(file);
 			let mut chain = MarkovChain::new(2);
@@ -28,7 +23,13 @@ fn main() {
 					}
 				}
 			}
-			print!("{:#?}", chain.generate_from_rnd_token(100).1.collect::<Vec<_>>());
+			println!(
+				"{}",
+				chain
+					.generate_from_rnd_token(100)
+					.1
+					.fold(String::new(), |acc, num| acc + &num + " ")
+			);
 		}
 		Err(err) => {
 			eprintln!("{}", err);
