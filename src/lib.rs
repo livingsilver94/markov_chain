@@ -41,6 +41,7 @@ impl<T: Token> Followers<T> {
         self.occurs
             .iter()
             .find(|(_, freq)| {
+                // A simple iterative algorithm to select an item from a weighted list
                 rnd_weight -= **freq as i64;
                 rnd_weight <= 0
             }).unwrap()
@@ -67,6 +68,7 @@ impl<T: Token> MarkovChain<T> {
         }
     }
 
+    /// Feed the chain so that it will be able to generate a succession of elements.
     pub fn train(&mut self, tokens: impl IntoIterator<Item = T>) -> &mut Self {
         let mut key = VecDeque::from(vec![KeyPosition::Beginning; self.order]);
         for item in tokens.into_iter() {
@@ -78,6 +80,9 @@ impl<T: Token> MarkovChain<T> {
         self
     }
 
+    /// Generate a succession of elements starting from the provided key.
+    /// 
+    /// Panics if the key length is different from the chain order.
     pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> impl Iterator<Item = &T> {
         assert!(token.len() == self.order, "The number of elements must match chain's order.");
         let mut key_queue = Vec::with_capacity(self.order * 2);
