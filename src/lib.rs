@@ -79,6 +79,7 @@ impl<T: Token> MarkovChain<T> {
     }
 
     pub fn generate_from_token(&self, token: &[KeyPosition<T>], max: usize) -> impl Iterator<Item = &T> {
+        assert!(token.len() == self.order, "The number of elements must match chain's order.");
         let mut key_queue = Vec::with_capacity(self.order * 2);
         key_queue.extend_from_slice(token);
         let mut removed = 0;
@@ -105,7 +106,7 @@ impl<T: Token> MarkovChain<T> {
     }
 
     /// Generate a vector of elements starting from a random token.
-    /// Return a tuple where the first element is the random key chosen, and the second
+    /// Returns a tuple where the first element is the random key chosen, and the second
     /// element is the generated iterator.
     pub fn generate_from_rnd_token(&self, max: usize) -> (&[KeyPosition<T>], impl Iterator<Item = &T>) {
         let rnd_index = rand::thread_rng().gen_range(0, self.graph.len() + 1);
@@ -117,6 +118,8 @@ impl<T: Token> MarkovChain<T> {
     pub fn generate(&self, max: usize) -> impl Iterator<Item = &T> {
         self.generate_from_token(&vec![KeyPosition::Beginning; self.order], max)
     }
+
+
 
     fn update_entry(&mut self, key: impl IntoIterator<Item = KeyPosition<T>>, value: Option<T>) {
         let followers = self
